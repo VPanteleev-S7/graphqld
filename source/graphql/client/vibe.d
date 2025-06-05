@@ -1,6 +1,8 @@
 /// Vibe.d HTTP GraphQL client
 module graphql.client.vibe;
 
+import std.datetime.systime;
+
 import vibe.data.json;
 import vibe.http.client;
 import vibe.stream.operations : readAllUTF8;
@@ -38,7 +40,11 @@ final class VibeHttpGraphQLClient {
 				req.writeJsonBody(body);
 			},
 			(scope res) {
-				result = res.bodyReader.readAllUTF8().parseJsonString();
+				auto str = res.bodyReader.readAllUTF8();
+				import core.memory;
+				stderr.writefln("[%s] PARSING %d BYTES: %s", Clock.currTime, str.length, GC.stats);
+				result = str.parseJsonString();
+				stderr.writefln("[%s] PARSED %d BYTES: %s", Clock.currTime, str.length, GC.stats);
 			}
 		);
 		return result;
@@ -115,4 +121,10 @@ unittest {
 		    .updateUser.name;
 		static assert(is(typeof(newName) == string));
 	}
+}
+
+// https://github.com/dlang/phobos/issues/10794
+@trusted imported!"std.stdio".File stderr() {
+  import std.stdio : stderr;
+  return stderr;
 }
